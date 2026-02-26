@@ -9,12 +9,21 @@ pipeline {
             }
         }
 
+        stage('Create Network') {
+            steps {
+                sh '''
+                docker network rm lab-net || true
+                docker network create lab-net
+                '''
+            }
+        }
+
         stage('Deploy Backend Containers') {
             steps {
                 sh '''
                 docker rm -f backend1 backend2 nginx-lb || true
-                docker run -d --name backend1 backend-app
-                docker run -d --name backend2 backend-app
+                docker run -d --name backend1 --network lab-net backend-app
+                docker run -d --name backend2 --network lab-net backend-app
                 '''
             }
         }
@@ -23,19 +32,11 @@ pipeline {
             steps {
                 sh '''
                 docker run -d --name nginx-lb \
+                --network lab-net \
                 -p 80:80 \
-                --link backend1 \
-                --link backend2 \
-                -v $(pwd)/nginx/default.conf:/etc/nginx/conf.d/default.conf \
                 nginx
                 '''
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline executed successfully. NGINX load balancer is running.'
         }
     }
 }
