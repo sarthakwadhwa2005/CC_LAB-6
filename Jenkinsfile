@@ -9,9 +9,10 @@ pipeline {
             }
         }
 
-        stage('Create Network') {
+        stage('Create Network & Clean Old Containers') {
             steps {
                 sh '''
+                docker rm -f backend1 backend2 nginx-lb || true
                 docker network rm lab-net || true
                 docker network create lab-net
                 '''
@@ -21,7 +22,6 @@ pipeline {
         stage('Deploy Backend Containers') {
             steps {
                 sh '''
-                docker rm -f backend1 backend2 nginx-lb || true
                 docker run -d --name backend1 --network lab-net backend-app
                 docker run -d --name backend2 --network lab-net backend-app
                 '''
@@ -37,6 +37,12 @@ pipeline {
                 nginx
                 '''
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline execution completed.'
         }
     }
 }
