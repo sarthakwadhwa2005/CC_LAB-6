@@ -31,10 +31,11 @@ pipeline {
         stage('Deploy NGINX Load Balancer') {
             steps {
                 sh '''
+                docker build -t nginx-lb-image nginx
                 docker run -d --name nginx-lb \
                 --network lab-net \
                 -p 80:80 \
-                nginx
+                nginx-lb-image
                 '''
             }
         }
@@ -42,7 +43,7 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline execution completed.'
+            echo 'Pipeline execution completed successfully.'
         }
     }
 }
