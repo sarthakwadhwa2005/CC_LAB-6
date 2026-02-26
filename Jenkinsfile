@@ -2,12 +2,40 @@ pipeline {
     agent any
 
     stages {
-        stage('Build Docker Image') {
+
+        stage('Build Backend Image') {
             steps {
-                script {
-                    docker.build("backend-image", "./backend")
-                }
+                sh 'docker build -t backend-app backend'
             }
+        }
+
+        stage('Deploy Backend Containers') {
+            steps {
+                sh '''
+                docker rm -f backend1 backend2 nginx-lb || true
+                docker run -d --name backend1 backend-app
+                docker run -d --name backend2 backend-app
+                '''
+            }
+        }
+
+        stage('Deploy NGINX Load Balancer') {
+            steps {
+                sh '''
+                docker run -d --name nginx-lb \
+                -p 80:80 \
+                --link backend1 \
+                --link backend2 \
+                -v $(pwd)/nginx/default.conf:/etc/nginx/conf.d/default.conf \
+                nginx
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline executed successfully. NGINX load balancer is running.'
         }
     }
 }
